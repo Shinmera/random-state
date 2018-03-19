@@ -92,7 +92,7 @@
 
 (defmethod random-float ((generator generator) (from real) (to real))
   (declare (optimize speed))
-  (+ to (* (- to from) (random-unit generator))))
+  (+ from (* (- to from) (random-unit generator))))
 
 (declaim (ftype (function (generator integer integer) (values integer)) random-int))
 (define-generator-generic random-int (generator from to))
