@@ -106,14 +106,22 @@
 (defmethod random-int ((generator generator) (from integer) (to integer))
   (declare (optimize speed))
   (let* ((range (- to from))
-         (bits (integer-length range))
-         (random (random-bytes generator bits)))
-    (declare (type (integer 0) random range)
+         (bits (integer-length range)))
+    (declare (type (integer 0) range)
              (type fixnum bits))
     (+ from
-       (if (= 0 (logand range (1+ range)))
-           random
-           (round (* range (/ random (ash 1 bits))))))))
+       ;; CANDIDATE is in the range [0, 2^BITS). Trying to map
+       ;; this to our target range will introduce bias -- for example,
+       ;; in the [0, 2] case, you could map 0->0, 1->0, 2->1, 3->2 and 0 would
+       ;; come up twice as often as 1 & 2. So we instead re-roll until we get
+       ;; a candidate in our range. Bigger range = fewer expected rolls.
+       ;; But even in the 0..2 case, the expected number of rolls is still only ~1.33:
+       ;;    E[R] = (3/4)1 + (1/4)(1 + E[R]),
+       ;;    4E[R] = 3 + 1 + E[R],
+       ;;    E[R] = 4/3 = ~1.33.
+       (loop for candidate = (random-bytes generator bits)
+             when (<= candidate range)
+             return candidate))))
 
 (declaim (ftype (function (generator &optional T) (values generator)) reseed))
 (define-generator-generic reseed (generator &optional new-seed))
