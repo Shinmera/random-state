@@ -7,8 +7,10 @@
 (in-package #:org.shirakumo.random-state)
 
 (defclass middle-square (generator)
-  ((bytes :writer set-bytes)
-   (state :accessor state)))
+  ((bytes :initarg :bytes :writer set-bytes)
+   (state :accessor state))
+  (:default-initargs
+   :bytes 64))
 
 (defmethod reseed ((generator middle-square) &optional new-seed)
   (setf (state generator) new-seed)
