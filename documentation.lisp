@@ -40,7 +40,13 @@ If no generator can be found, an error is signalled.")
     "Creates a generator of the given type.
 
 The GENERATOR can be any name supported by GENERATOR-CLASS.
+
+SEED must be an integer.
+
 After construction, RESEED is called on the generator with the given SEED.
+
+Example:
+  (random-state:make-generator :mersenne-twister-32 42)
 
 See GENERATOR-CLASS
 See RESEED")
@@ -78,7 +84,7 @@ See GENERATOR")
   (function random-int
     "Returns an integer of fresh random output from the generator.
 
-The returned value is an integer between FROM and TO.
+The returned value is an integer between FROM (inclusive) and TO (inclusive).
 
 See GENERATOR")
   
