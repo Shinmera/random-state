@@ -12,6 +12,7 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   (:export
    #:global-generator
    #:ensure-generator
+   #:list-generator-types
    #:generator
    #:seed
    #:reseed

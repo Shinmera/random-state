@@ -6,12 +6,16 @@
 
 (in-package #:org.shirakumo.random-state)
 
+(defvar *generator-types* '(random-state))
 (defvar *generators* (make-hash-table :test 'eql))
 
 (defun global-generator (name)
   (or (gethash name *generators*)
       (setf (gethash name *generators*)
             (make-generator name))))
+
+(defun (setf global-generator) (value name)
+  (setf (gethash name *generators*) value))
 
 (define-compiler-macro global-generator (&whole whole name &environment env)
   (if (constantp name env)
@@ -32,30 +36,35 @@
             (defmethod ,name ((,gen symbol) ,@args)
               (,name (global-generator ,gen) ,@argsyms)))))
 
+(defun list-generator-types ()
+  *generator-types*)
+
 (defstruct (generator
             (:constructor NIL)
             (:copier NIL)
-            (:conc-name NIL))
+            (:conc-name %))
   (seed 0 :type (unsigned-byte 64)))
 
 (defmethod print-object ((generator generator) stream)
   (print-unreadable-object (generator stream :type T)
     (format stream "~s" (seed generator))))
 
-(declaim (ftype (function ((or generator symbol)) generator) ensure-generator))
 (defun ensure-generator (generator-ish)
   (etypecase generator-ish
     (symbol (global-generator generator-ish))
+    (random-state generator-ish)
     (generator generator-ish)))
 
 (define-compiler-macro ensure-generator (&whole whole generator-ish &environment env)
   (if (constantp generator-ish env)
       `(load-time-value (etypecase ,generator-ish
                           (symbol (global-generator ,generator-ish))
+                          (random-state ,generator-ish)
                           (generator ,generator-ish)))
       whole))
 
 (defgeneric %make-generator (type &key))
+(define-generator-fun seed (generator))
 (define-generator-fun reseed (generator new-seed))
 (define-generator-fun next-byte (generator))
 (define-generator-fun bits-per-byte (generator))
@@ -69,6 +78,9 @@
 (defmethod reseed ((generator generator) (new-seed (eql T)))
   (reseed generator (hopefully-sufficiently-random-seed))
   generator)
+
+(defmethod seed ((generator generator))
+  (%seed generator))
 
 (defmacro define-generator (name bits-per-byte super slots &body bodies)
   (let ((constructor (intern* 'make name))
@@ -84,6 +96,8 @@
         (seed (intern* 'seed))
         (index (intern* 'index)))
     `(progn
+       (pushnew ',name *generator-types*)
+       
        (defstruct (,name
                    (:include ,@super)
                    (:constructor ,constructor)
@@ -95,7 +109,7 @@
                collect (ecase type
                          (:reseed
                           `(progn (defun ,reseed (,generator ,seed)
-                                    (setf (seed ,generator) ,seed)
+                                    (setf (%seed ,generator) ,seed)
                                     (symbol-macrolet ,bindings
                                       ,@body))
                                   (defmethod reseed ((,generator ,name) (new-seed integer))
@@ -115,10 +129,10 @@
                                   (defun ,next (,generator)
                                     (let ((index (fit-bits 64 (1+ (index ,generator)))))
                                       (setf (index ,generator) index)
-                                      (,hash index (seed ,generator))))
+                                      (,hash index (%seed ,generator))))
                                   (defmethod next-byte ((,generator ,name))
                                     (,next ,generator))))))
-
+       
        (defmethod copy ((generator ,name))
          (,copy generator))
        (defmethod %make-generator ((type (eql ',name)) &rest initargs)
@@ -149,7 +163,7 @@
 
 (defmethod reseed ((generator hash-generator) (seed integer))
   (setf (index generator) 0)
-  (setf (seed generator) (fit-bits 64 seed)))
+  (setf (%seed generator) (fit-bits 64 seed)))
 
 (defmethod rewind ((generator hash-generator) &optional (by 1))
   (setf (index generator) (fit-bits 64 (- (index generator) by))))

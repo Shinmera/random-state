@@ -24,5 +24,6 @@
                (:file "rc4")
                (:file "tt800")
                (:file "squirrel")
+               (:file "implementation")
                (:file "documentation"))
   :depends-on (:documentation-utils))
