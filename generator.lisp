@@ -146,6 +146,11 @@
             (:copier NIL)
             (:predicate NIL)))
 
+(defmethod %make-generator :around ((type stateful-generator) &key)
+  (let ((generator (call-next-method)))
+    (reseed generator 0)
+    generator))
+
 (defstruct (hash-generator
             (:include generator)
             (:constructor NIL)
