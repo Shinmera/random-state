@@ -14,7 +14,7 @@
      (n 25 :type (unsigned-byte 8))
      (m 7 :type (unsigned-byte 8))
      (index 0 :type (unsigned-byte 64))
-     (matrix #() :type (simple-array (unsigned-byte 32) (*))))
+     (matrix (make-array 25 :element-type `(unsigned-byte 32)) :type (simple-array (unsigned-byte 32) (25))))
   (:reseed
    (setf matrix (32bit-seed-array n seed)))
   (:next
