@@ -6,20 +6,15 @@
 
 (in-package #:org.shirakumo.random-state)
 
-(defclass middle-square (generator)
-  ((bytes :initarg :bytes :writer set-bytes)
-   (state :accessor state))
-  (:default-initargs
-   :bytes 64))
 
-(defmethod reseed ((generator middle-square) &optional new-seed)
-  (setf (state generator) new-seed)
-  (set-bytes (integer-length new-seed) generator))
-
-(defmethod random-byte ((generator middle-square))
-  (let* ((digits (bytes generator))
-         (square (expt (state generator) 2))
-         (offset (floor (/ (max 0 (- (integer-length square) digits)) 2)))
-         (new (ldb (byte digits offset) square)))
-    (setf (state generator) new)
-    (values new (bytes generator))))
+(define-generator middle-square 64 (stateful-generator)
+    ((bits 64)
+     (state 0))
+  (:reseed
+   (setf state seed)
+   (setf bits (integer-length seed)))
+  (:next
+   (let* ((square (expt state 2))
+          (offset (floor (max 0 (- (integer-length square) bits)) 2))
+          (new (ldb (byte bits offset) square)))
+     (setf state new))))

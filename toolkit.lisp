@@ -68,3 +68,9 @@
 
 (defmacro incfmod (place mod &optional (delta 1))
   `(setf ,place (mod (+ ,place ,delta) ,mod)))
+
+(defun intern* (&rest args)
+  (intern (format NIL "~{~a~^-~}" (mapcar #'string args))))
+
+(defmacro update32 (place op &rest args)
+  `(setf ,place (truncate32 (,op ,place ,@args))))

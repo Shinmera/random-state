@@ -13,15 +13,15 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
    #:global-generator
    #:generator
    #:seed
-   #:bytes
-   #:generator-class
+   #:reseed
+   #:next-byte
+   #:bits-per-byte
    #:make-generator
-   #:random-byte
-   #:random-bytes
-   #:random-unit
-   #:random-float
-   #:random-int
-   #:reseed)
+   #:define-generator
+   #:stateful-generator
+   #:hash-generator
+   #:hash-generator-index
+   #:rewind)
   ;; linear-congruence.lisp
   (:export
    #:linear-congruence)
@@ -35,6 +35,13 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   ;; pcg.lisp
   (:export
    #:pcg)
+  ;; protocol.lisp
+  (:export
+   #:random-bytes
+   #:random-unit
+   #:random-float
+   #:random-double-float
+   #:random-integer)
   ;; rc4.lisp
   (:export
    #:rc4)

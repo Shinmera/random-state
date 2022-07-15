@@ -9,125 +9,128 @@
 (defvar *generators* (make-hash-table :test 'eql))
 
 (defun global-generator (name)
-  (let ((class (generator-class name)))
-    (or (gethash (class-name class) *generators*)
-        (setf (gethash (class-name class) *generators*)
-              (make-generator class)))))
+  (or (gethash name *generators*)
+      (setf (gethash name *generators*)
+            (make-generator name))))
 
-(declaim (ftype (function (generator) (values (unsigned-byte 8))) bytes))
-(defclass generator ()
-  ((seed :initarg :seed :reader seed :writer set-seed)
-   (bytes :initform (error "Missing BYTES initform from generator definition.") :reader bytes))
-  (:default-initargs
-   :seed (error "SEED required.")))
+(define-compiler-macro global-generator (&whole whole name &environment env)
+  (if (constantp name env)
+      `(load-time-value (or (gethash ,name *generators*)
+                            (setf (gethash ,name *generators*)
+                                  (make-generator ,name))))
+      whole))
+
+(defstruct (generator
+            (:constructor NIL)
+            (:copier NIL)
+            (:conc-name NIL))
+  (seed 0 :type (unsigned-byte 64)))
 
 (defmethod print-object ((generator generator) stream)
   (print-unreadable-object (generator stream :type T)
     (format stream "~s" (seed generator))))
 
-(defun generator-class (name)
-  (let ((class (if (typep name 'class)
-                   name
-                   (let ((symbol (find-symbol (string name) '#:org.shirakumo.random-state)))
-                     (or (and symbol (find-class symbol NIL))
-                         (error "No such generator ~s." name))))))
-    (if (subtypep (class-name class) 'generator)
-        class
-        (error "~a is not a subclass of generator." class))))
+(defgeneric %make-generator (type &key))
+(defgeneric reseed (generator new-seed))
+(defgeneric next-byte (generator))
+(defgeneric bits-per-byte (generator))
 
-(defun make-generator (generator &optional seed &rest initargs)
-  (let ((generator (apply #'make-instance (generator-class generator) :seed seed initargs)))
-    (reseed generator seed)))
+(defun make-generator (type &optional seed &rest initargs)
+  (let ((generator (apply #'%make-generator type initargs)))
+    (when seed (reseed generator seed))
+    generator))
 
-(defmacro define-generator-generic (name (generator &rest args) &rest options)
-  `(progn
-     (defgeneric ,name (,generator ,@args)
-       ,@options)
+(defmethod next-byte ((generator symbol))
+  (next-byte (global-generator generator)))
 
-     (defmethod ,name (,generator ,@args)
-       (,name (global-generator ,generator)
-              ,@(remove-if (lambda (a) (find a lambda-list-keywords)) args)))))
+(defmethod reseed ((generator symbol) new-seed)
+  (reseed (global-generator generator) new-seed))
 
-(declaim (ftype (function (generator) (values (integer 0))) random-byte))
-(define-generator-generic random-byte (generator))
-
-(declaim (ftype (function (generator integer) (values (integer 0))) random-bytes))
-(define-generator-generic random-bytes (generator bytes))
-
-(defmethod random-bytes ((generator generator) (bytes integer))
-  (declare (optimize speed))
-  (let ((chunk (bytes generator)))
-    (cond ((= bytes chunk)
-           (random-byte generator))
-          ((< bytes chunk)
-           (truncate-bits (random-byte generator) bytes))
-          (T
-           (let ((random 0))
-             ;; Fill upper bits
-             (loop for i downfrom (- bytes chunk) above 0 by chunk
-                   for byte = (random-byte generator)
-                   do (setf (ldb (byte chunk i) random) byte))
-             ;; Fill lowermost bits.
-             ;; This will cause spilling on misaligned boundaries, but we don't care.
-             (setf (ldb (byte chunk 0) random) (random-byte generator))
-             random)))))
-
-(declaim (ftype (function (generator) (values double-float)) random-byte))
-(define-generator-generic random-unit (generator))
-
-(defmethod random-unit ((generator generator))
-  (declare (optimize speed))
-  (let* ((bits #.(integer-length most-positive-fixnum))
-         (random (random-bytes generator bits)))
-    (/ (float (the (integer 0) random) 0.0d0) most-positive-fixnum)))
-
-(declaim (ftype (function (generator real real) (values double-float)) random-float))
-(define-generator-generic random-float (generator from to))
-
-(defmethod random-float :around ((generator generator) (from real) (to real))
-  (declare (optimize speed))
-  (if (< from to)
-      (call-next-method)
-      (call-next-method generator to from)))
-
-(defmethod random-float ((generator generator) (from real) (to real))
-  (declare (optimize speed))
-  (+ from (* (- to from) (random-unit generator))))
-
-(declaim (ftype (function (generator integer integer) (values integer)) random-int))
-(define-generator-generic random-int (generator from to))
-
-(defmethod random-int :around ((generator generator) (from integer) (to integer))
-  (declare (optimize speed))
-  (if (< from to)
-      (call-next-method)
-      (call-next-method generator to from)))
-
-(defmethod random-int ((generator generator) (from integer) (to integer))
-  (declare (optimize speed))
-  (let* ((range (- to from))
-         (bits (integer-length range)))
-    (declare (type (integer 0) range)
-             (type fixnum bits))
-    (+ from
-       ;; CANDIDATE is in the range [0, 2^BITS). Trying to map
-       ;; this to our target range will introduce bias -- for example,
-       ;; in the [0, 2] case, you could map 0->0, 1->0, 2->1, 3->2 and 0 would
-       ;; come up twice as often as 1 & 2. So we instead re-roll until we get
-       ;; a candidate in our range. Bigger range = fewer expected rolls.
-       ;; But even in the 0..2 case, the expected number of rolls is still only ~1.33:
-       ;;    E[R] = (3/4)1 + (1/4)(1 + E[R]),
-       ;;    4E[R] = 3 + 1 + E[R],
-       ;;    E[R] = 4/3 = ~1.33.
-       (loop for candidate = (random-bytes generator bits)
-             when (<= candidate range)
-             return candidate))))
-
-(declaim (ftype (function (generator &optional T) (values generator)) reseed))
-(define-generator-generic reseed (generator &optional new-seed))
-
-(defmethod reseed :around ((generator generator) &optional new-seed)
-  (let ((seed (or new-seed (hopefully-sufficiently-random-seed))))
-    (set-seed seed generator)
-    (call-next-method generator seed))
+(defmethod reseed ((generator generator) (new-seed (eql T)))
+  (reseed generator (hopefully-sufficiently-random-seed))
   generator)
+
+(defmacro define-generator (name bits-per-byte super slots &body bodies)
+  (let ((constructor (intern* 'make name))
+        (reseed (intern* name 'reseed))
+        (next (intern* name 'next))
+        (hash (intern* name 'hash))
+        (bindings (append (loop for (slot) in slots collect
+                                `(,slot (,(intern* name slot) generator)))
+                          (loop for (slot) in (rest super) collect
+                                `(,slot (,(intern* (first super) slot) generator)))))
+        (generator (intern* 'generator))
+        (seed (intern* 'seed))
+        (index (intern* 'index)))
+    `(progn
+       (defstruct (,name
+                   (:include ,@super)
+                   (:constructor ,constructor)
+                   (:predicate NIL))
+         ,@slots)
+
+       ,@(loop for (type . body) in bodies
+               collect (ecase type
+                         (:reseed
+                          `(progn (defun ,reseed (,generator ,seed)
+                                    (setf (seed ,generator) ,seed)
+                                    (symbol-macrolet ,bindings
+                                      ,@body))
+                                  (defmethod reseed ((,generator ,name) (new-seed integer))
+                                    (,reseed ,generator new-seed))))
+                         (:next
+                          `(progn (defun ,next (,generator)
+                                    (symbol-macrolet ,bindings
+                                      ,@body))
+                                  (defmethod next-byte ((,generator ,name))
+                                    (,next ,generator))))
+                         (:hash
+                          `(progn (defun ,hash (,index ,seed)
+                                    (declare (type (unsigned-byte 64) ,index ,seed))
+                                    ,@body)
+                                  (defmethod hash ((,generator ,name) ,index ,seed)
+                                    (,hash ,index ,seed))
+                                  (defun ,next (,generator)
+                                    (let ((index (truncate64 (1+ (hash-generator-index ,generator)))))
+                                      (setf (hash-generator-index ,generator) index)
+                                      (,hash index (seed ,generator))))
+                                  (defmethod next-byte ((,generator ,name))
+                                    (,next ,generator))))))
+
+       (defmethod %make-generator ((type (eql ',name)) &rest initargs)
+         (apply #',constructor initargs))
+       (defmethod bits-per-byte ((generator ,name))
+         ,bits-per-byte))))
+
+(defstruct (stateful-generator
+            (:include generator)
+            (:constructor NIL)
+            (:copier NIL)
+            (:predicate NIL)))
+
+(defstruct (hash-generator
+            (:include generator)
+            (:constructor NIL)
+            (:copier NIL)
+            (:predicate NIL))
+  (index 0 :type (unsigned-byte 64)))
+
+(defgeneric rewind (hash-generator &optional by))
+(defgeneric hash (hash-generator index seed))
+
+(defmethod make-load-form ((generator hash-generator) &optional env)
+  (declare (ignore env))
+  `(make-generator ',(type-of generator) ,(seed generator) :index ,(hash-generator-index generator)))
+
+(defmethod reseed ((generator hash-generator) (seed integer))
+  (setf (hash-generator-index generator) 0)
+  (setf (seed generator) (truncate64 seed)))
+
+(defmethod hash ((generator symbol) index seed)
+  (hash (global-generator generator) index seed))
+
+(defmethod rewind ((generator symbol) &optional (by 1))
+  (rewind (global-generator generator) by))
+
+(defmethod rewind ((generator hash-generator) &optional (by 1))
+  (setf (index generator) (truncate64 (- (index generator) by))))

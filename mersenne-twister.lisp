@@ -12,39 +12,27 @@
 ;;   http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/VERSIONS/C-LANG/mt19937-64.c
 ;; respectively.
 
-(declaim (ftype (function (T) fixnum) index))
+(defstruct (mersenne-twister
+            (:include stateful-generator)
+            (:constructor NIL)
+            (:predicate NIL))
+  (index 0 :type (unsigned-byte 64)))
 
-(defclass mersenne-twister (generator)
-  ((n :initarg :n :reader n)
-   (m :initarg :m :reader m)
-   (upper :initarg :upper :reader upper)
-   (lower :initarg :lower :reader lower)
-   (matrix :initarg :matrix :reader matrix :writer set-matrix)
-   (index :initarg :index :accessor index)
-   (magic :initarg :magic :reader magic)
-   (shiftops :initarg :shiftops :reader shiftops)))
-
-(defmethod reseed :after ((generator mersenne-twister) &optional new-seed)
-  (declare (ignore new-seed))
-  (setf (index generator) (n generator)))
-
-(defmacro %inner-mersenne-twister (bytes)
+(defmacro %inner-mersenne-twister (bytes n m upper lower matrix magic &rest shiftops)
   `(let ((i 0)
-         (n (n generator))
-         (m (m generator))
-         (upper (upper generator))
-         (lower (lower generator))
-         (matrix (matrix generator))
-         (magic (magic generator))
-         (shiftops (shiftops generator)))
+         (n ,n)
+         (m ,m)
+         (upper ,upper)
+         (lower ,lower)
+         (matrix ,matrix)
+         (magic ,magic))
      (declare (optimize speed)
-              (ftype (function (mersenne-twister) (unsigned-byte 16)) index)
               (type (simple-array (unsigned-byte ,bytes)) matrix magic)
               (type (unsigned-byte 16) n m i))
      (flet ((magic (i) (aref magic i))
             (matrix (i) (aref matrix i)))
        (declare (inline magic matrix))
-       (when (= (the integer (index generator)) n)
+       (when (= (mersenne-twister-index generator) n)
          (loop while (< i (- n m))
                do (let ((x (logior (logand (matrix i) upper)
                                    (logand (matrix (1+ i)) lower))))
@@ -61,51 +49,43 @@
                                   (ash x -1)
                                   (magic (mod x 2)))))
                   (incf i))
-         (setf (index generator) 0))
-       (let ((result (matrix (index generator))))
+         (setf (mersenne-twister-index generator) 0))
+       (let ((result (matrix (mersenne-twister-index generator))))
          (declare (type (unsigned-byte ,bytes) result))
-         (setf (index generator) (the fixnum (1+ (index generator))))
-         (loop for (shift mask) across shiftops
-               do (setf result (logxor result
-                                       (logand (ash (the (unsigned-byte ,bytes) result)
-                                                    (the (signed-byte 16) shift))
-                                               (the (unsigned-byte ,bytes) mask)))))
+         (setf (mersenne-twister-index generator) (logand (1+ (mersenne-twister-index generator)) (1- (ash 1 64))))
+         ,@(loop for (shift mask) in shiftops
+                 collect `(setf result (logxor result
+                                               (logand (ash (the (unsigned-byte ,bytes) result)
+                                                            ,shift)
+                                                       ,mask))))
          result))))
 
-(defclass mersenne-twister-32 (mersenne-twister)
-  ((bytes :initform 32))
-  (:default-initargs
-   :n 624
-   :m 397
-   :upper #x80000000
-   :lower #x7fffffff
-   :magic (barr 32 0 #x9908b0df)
-   :shiftops #((-11 #xFFFFFFFF)
-               (  7 #x9D2C5680)
-               ( 15 #xEFC60000)
-               (-18 #xFFFFFFFF))))
+(define-generator mersenne-twister-32 32 (mersenne-twister)
+    ((upper #x80000000 :type (unsigned-byte 32))
+     (lower #x7fffffff :type (unsigned-byte 32))
+     (magic (barr 32 0 #x9908b0df) :type (simple-array (unsigned-byte 32) (2)))
+     (matrix (barr 32) :type (simple-array (unsigned-byte 32) (624))))
+  (:reseed
+   (setf matrix (32bit-seed-array 624 seed))
+   (setf index 624))
+  (:next
+   (%inner-mersenne-twister 32 624 397 upper lower matrix magic
+                            (-11 #xFFFFFFFF)
+                            (  7 #x9D2C5680)
+                            ( 15 #xEFC60000)
+                            (-18 #xFFFFFFFF))))
 
-(defmethod reseed ((generator mersenne-twister-32) &optional new-seed)
-  (set-matrix (32bit-seed-array (n generator) new-seed) generator))
-
-(defmethod random-byte ((generator mersenne-twister-32))
-  (%inner-mersenne-twister 32))
-
-(defclass mersenne-twister-64 (mersenne-twister)
-  ((bytes :initform 64))
-  (:default-initargs
-   :n 312
-   :m 156
-   :upper #xFFFFFFFF80000000
-   :lower #x000000007FFFFFFF
-   :magic (barr 64 0 #xB5026F5AA96619E9)
-   :shiftops #1A((-29 #x5555555555555555)
-                 ( 17 #x71D67FFFEDA60000)
-                 ( 37 #xFFF7EEE000000000)
-                 (-43 #xFFFFFFFFFFFFFFFF))))
-
-(defmethod reseed ((generator mersenne-twister-64) &optional new-seed)
-  (set-matrix (64bit-seed-array (n generator) new-seed) generator))
-
-(defmethod random-byte ((generator mersenne-twister-64))
-  (%inner-mersenne-twister 64))
+(define-generator mersenne-twister-64 64 (mersenne-twister)
+    ((upper #xFFFFFFFF80000000 :type (unsigned-byte 64))
+     (lower #x000000007FFFFFFF :type (unsigned-byte 64))
+     (magic (barr 64 0 #xB5026F5AA96619E9) :type (simple-array (unsigned-byte 64) (2)))
+     (matrix (barr 64) :type (simple-array (unsigned-byte 64) (312))))
+  (:reseed
+   (setf matrix (64bit-seed-array 312 seed))
+   (setf index 312))
+  (:next
+   (%inner-mersenne-twister 64 312 156 upper lower matrix magic
+                            (-29 #x5555555555555555)
+                            ( 17 #x71D67FFFEDA60000)
+                            ( 37 #xFFF7EEE000000000)
+                            (-43 #xFFFFFFFFFFFFFFFF))))

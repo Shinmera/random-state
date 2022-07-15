@@ -6,26 +6,11 @@
 
 (in-package #:org.shirakumo.random-state)
 
-(defclass linear-congruence (generator)
-  ((state :accessor state)
-   (multiplier :initarg :multiplier :reader multiplier :writer set-multiplier)
-   (increment :initarg :increment :reader increment :writer set-increment)
-   (bytes :initarg :bytes :writer set-bytes))
-  (:default-initargs
-   :bytes 64
-   :multiplier 6364136223846793005
-   :increment 1442695040888963407))
-
-(defmethod reseed ((generator linear-congruence) &optional new-seed)
-  (setf (state generator) (mod new-seed (1- (ash 1 (bytes generator))))))
-
-(defmethod random-byte ((generator linear-congruence))
-  (let ((c (increment generator))
-        (a (multiplier generator))
-        (x (state generator))
-        (b (bytes generator)))
-    (declare (optimize speed)
-             (type integer b c a x))
-    (let ((new (mod (+ c (* x a)) (1- (ash 1 b)))))
-      (setf (state generator) new)
-      new)))
+(define-generator linear-congruence 64 (stateful-generator)
+  ((state 0 :type (unsigned-byte 64))
+   (multiplier 6364136223846793005 :type (unsigned-byte 64))
+   (increment 1442695040888963407 :type (unsigned-byte 64)))
+  (:reseed
+   (setf state (mod seed (1- (ash 1 64)))))
+  (:next
+   (setf state (mod (+ increment (* state multiplier)) (1- (ash 1 64))))))
