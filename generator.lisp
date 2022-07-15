@@ -42,8 +42,8 @@
 (defstruct (generator
             (:constructor NIL)
             (:copier NIL)
-            (:conc-name %))
-  (seed 0 :type (unsigned-byte 64)))
+            (:conc-name NIL))
+  (%seed 0 :type (unsigned-byte 64)))
 
 (defmethod print-object ((generator generator) stream)
   (print-unreadable-object (generator stream :type T)
@@ -160,9 +160,9 @@
 (defstruct (hash-generator
             (:include generator)
             (:constructor NIL)
-            (:conc-name NIL)
             (:copier NIL)
-            (:predicate NIL))
+            (:predicate NIL)
+            (:conc-name NIL))
   (index 0 :type (unsigned-byte 64)))
 
 (define-generator-fun rewind (hash-generator &optional by))
