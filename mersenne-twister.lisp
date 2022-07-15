@@ -60,7 +60,7 @@
                                                        ,mask))))
          result))))
 
-(define-generator mersenne-twister-32 32 (mersenne-twister)
+(define-generator mersenne-twister-32 32 (mersenne-twister (index 624))
     ((upper #x80000000 :type (unsigned-byte 32))
      (lower #x7fffffff :type (unsigned-byte 32))
      (magic (barr 32 0 #x9908b0df) :type (simple-array (unsigned-byte 32) (2)))
@@ -75,7 +75,7 @@
                             ( 15 #xEFC60000)
                             (-18 #xFFFFFFFF))))
 
-(define-generator mersenne-twister-64 64 (mersenne-twister)
+(define-generator mersenne-twister-64 64 (mersenne-twister (index 312))
     ((upper #xFFFFFFFF80000000 :type (unsigned-byte 64))
      (lower #x000000007FFFFFFF :type (unsigned-byte 64))
      (magic (barr 64 0 #xB5026F5AA96619E9) :type (simple-array (unsigned-byte 64) (2)))

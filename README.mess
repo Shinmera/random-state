@@ -8,7 +8,7 @@ For both curiosity and convenience, this library offers multiple algorithms to g
 (loop with generator = (random-state:make-generator :mersenne-twister-32 123)
       repeat 10
       collect (random-state:random-int generator 0 10))
-; => (5 6 6 3 2 8 6 9 6 1)
+; => (8 10 9 5 3 10 9 2 9 2)
 ::
 
 Several methods to compute random numbers in certain ranges are provided in advance: ``random-byte``, ``random-bytes``, ``random-sequence``, ``random-unit``, ``random-float``, and ``random-int``. Each of those can also be used with just the name of the generator you'd like to use as the first argument, in which case a global instance will be used.
