@@ -151,6 +151,12 @@
     (reseed generator 0)
     generator))
 
+(defmethod %make-generator ((type symbol) &rest args)
+  (let ((name (find-symbol (string type) #.*package*)))
+    (if name
+        (apply #'%make-generator name args)
+        (call-next-method))))
+
 (defstruct (hash-generator
             (:include generator)
             (:constructor NIL)
