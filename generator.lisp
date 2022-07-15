@@ -46,8 +46,17 @@
   (%seed 0 :type (unsigned-byte 64)))
 
 (defmethod print-object ((generator generator) stream)
-  (print-unreadable-object (generator stream :type T)
-    (format stream "~s" (seed generator))))
+  ;; Fully printing a state can be huge, so unless readability is requested,
+  ;; use P-U-O to print something shorter.
+  (if *print-readably*
+      (call-next-method)
+      (print-unreadable-object (generator stream :type T)
+	(format stream "~s" (seed generator))))
+  ;; P-U-O does not return the object, which PRINT-OBJECT is supposed to do.
+  generator)
+
+(defmethod make-load-form ((object generator) &optional env)
+  (make-load-form-saving-slots object :environment env))
 
 (defun ensure-generator (generator-ish)
   (etypecase generator-ish
@@ -167,10 +176,6 @@
 
 (define-generator-fun rewind (hash-generator &optional by))
 (define-generator-fun hash (hash-generator index seed))
-
-(defmethod make-load-form ((generator hash-generator) &optional env)
-  (declare (ignore env))
-  `(make-generator ',(type-of generator) ,(seed generator) :index ,(index generator)))
 
 (defmethod reseed ((generator hash-generator) (seed integer))
   (setf (index generator) 0)
