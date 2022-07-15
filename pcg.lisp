@@ -11,13 +11,13 @@
      (inc #xda3e39cb94b95bdb :type (unsigned-byte 64)))
   (:reseed
    (setf state 0)
-   (setf inc (truncate64 (logior 1 (ash seed 1))))
+   (setf inc (fit-bits 64 (logior 1 (ash seed 1))))
    (pcg-next generator)
-   (setf state (truncate64 (+ state seed)))
+   (setf state (fit-bits 64 (+ state seed)))
    (pcg-next generator))
   (:next
    (let ((oldstate state))
-     (setf state (truncate64 (+ (truncate64 (* oldstate #x6364136223846793005)) inc)))
-     (let ((xord (ash (loxgor (ash oldstate -18) oldstate) -27))
+     (setf state (fit-bits 64 (+ (fit-bits 64 (* oldstate #x6364136223846793005)) inc)))
+     (let ((xord (ash (logxor (ash oldstate -18) oldstate) -27))
            (rot (ash oldstate -59)))
-       (truncate32 (logior (ash xord (- rot)) (ash xord (logand (- rot) 31))))))))
+       (fit-bits 32 (logior (ash xord (- rot)) (ash xord (logand (- rot) 31))))))))

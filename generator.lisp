@@ -113,7 +113,7 @@
                                   (defmethod hash ((,generator ,name) ,index ,seed)
                                     (,hash ,index ,seed))
                                   (defun ,next (,generator)
-                                    (let ((index (truncate64 (1+ (index ,generator)))))
+                                    (let ((index (fit-bits 64 (1+ (index ,generator)))))
                                       (setf (index ,generator) index)
                                       (,hash index (seed ,generator))))
                                   (defmethod next-byte ((,generator ,name))
@@ -149,7 +149,7 @@
 
 (defmethod reseed ((generator hash-generator) (seed integer))
   (setf (index generator) 0)
-  (setf (seed generator) (truncate64 seed)))
+  (setf (seed generator) (fit-bits 64 seed)))
 
 (defmethod rewind ((generator hash-generator) &optional (by 1))
-  (setf (index generator) (truncate64 (- (index generator) by))))
+  (setf (index generator) (fit-bits 64 (- (index generator) by))))

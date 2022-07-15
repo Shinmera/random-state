@@ -6,20 +6,15 @@
 
 (in-package #:org.shirakumo.random-state)
 
-(declaim (inline truncate-bits))
-(declaim (ftype (function ((integer 0) (integer 0)) (integer 0))))
-(defun truncate-bits (x bits)
+(declaim (inline fit-bits))
+(declaim (ftype (function ((unsigned-byte 8) (integer 0)) (integer 0)) fit-bits))
+(defun fit-bits (bits x)
   (logand x (1- (ash 1 bits))))
 
-(declaim (inline truncate32))
-(declaim (ftype (function (integer) (unsigned-byte 32)) truncate32))
-(defun truncate32 (x)
-  (logand x #xFFFFFFFF))
-
-(declaim (inline truncate64))
-(declaim (ftype (function (integer) (unsigned-byte 64)) truncate64))
-(defun truncate64 (x)
-  (logand x #xFFFFFFFFFFFFFFFF))
+(define-compiler-macro fit-bits (&whole whole bits x &environment env)
+  (if (constantp bits env)
+      `(logand ,x (load-time-value (1- (ash 1 ,bits))))
+      whole))
 
 (defun byte-array-to-int (array)
   (loop with int = 0
@@ -43,21 +38,21 @@
 (defun 32bit-seed-array (size seed)
   (declare (optimize speed))
   (let ((array (make-array size :element-type '(unsigned-byte 32))))
-    (setf (aref array 0) (truncate32 seed))
+    (setf (aref array 0) (fit-bits 32 seed))
     ;; Using generator from:
     ;; Line 25 of Table 1 in "The Art of Computer Programming Vol. 2" (2nd Ed.), pp 102
     (loop for i from 1 below size
           do (setf (aref array i)
-                   (truncate32 (* 69069 (aref array (1- i))))))
+                   (fit-bits 32 (* 69069 (aref array (1- i))))))
     array))
 
 (defun 64bit-seed-array (size seed)
   (declare (optimize speed))
   (let ((array (make-array size :element-type '(unsigned-byte 64))))
-    (setf (aref array 0) (truncate64 seed))
+    (setf (aref array 0) (fit-bits 64 seed))
     (loop for i from 1 below size
           do (setf (aref array i)
-                   (truncate64 (+ (* 6364136223846793005
+                   (fit-bits 64 (+ (* 6364136223846793005
                                      (logxor (aref array (1- i))
                                              (ash (aref array (1- i)) -62)))
                                   i))))
@@ -72,5 +67,5 @@
 (defun intern* (&rest args)
   (intern (format NIL "~{~a~^-~}" (mapcar #'string args))))
 
-(defmacro update32 (place op &rest args)
-  `(setf ,place (truncate32 (,op ,place ,@args))))
+(defmacro update (bits place op &rest args)
+  `(setf ,place (fit-bits ,bits (,op ,place ,@args))))

@@ -26,7 +26,7 @@
     (cond ((= bits chunk)
            (next-byte generator))
           ((< bits chunk)
-           (truncate-bits (next-byte generator) bits))
+           (fit-bits bits (next-byte generator)))
           (T
            (let ((random 0))
              ;; Fill upper bits
