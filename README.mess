@@ -1,0 +1,16 @@
+## About random-state
+This is a collection of pseudo random number generators (PRNGs). While Common Lisp does provide a ``RANDOM`` function, it does not allow the user to pass an explicit seed, nor to portably exchange the random state between implementations. This can be a headache in cases like games, where a controlled seeding process is very useful.
+
+## How To
+For both curiosity and convenience, this library offers multiple algorithms to generate random numbers, as well as a bunch of generally useful methods to produce desired ranges.
+
+:: common lisp
+(loop with generator = (random-state:make-generator :mersenne-twister-32 123)
+      repeat 10
+      collect (random-state:random-int generator 0 10))
+; => (5 6 6 3 2 8 6 9 6 1)
+::
+
+Several methods to compute random numbers in certain ranges are provided in advance: ``random-byte``, ``random-bytes``, ``random-sequence``, ``random-unit``, ``random-float``, and ``random-int``. Each of those can also be used with just the name of the generator you'd like to use as the first argument, in which case a global instance will be used.
+
+For generators that are hash-based, such as ``squirrel``, additional noise functions are provided: ``random-1d``, ``random-2d``, and ``random-3d``, and some functions to manipulate the stepping of the generator: ``index``, and ``rewind``.
