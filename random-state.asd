@@ -5,7 +5,7 @@
 |#
 
 (asdf:defsystem random-state
-  :version "0.1.0"
+  :version "1.0.0"
   :author "Nicolas Hafner <shinmera@tymoon.eu>"
   :license "zlib"
   :description "Portable random number generation."
