@@ -49,8 +49,7 @@
        (loop for i from start below end
              do (setf (aref sequence i) (next-byte generator))))
       (sequence
-       (loop for i from start below end
-             do (setf (elt sequence i) (next-byte generator)))))))
+       (map-into sequence (lambda () (next-byte generator)))))))
 
 (defun random-unit (generator &optional (type 'single-float))
   (let* ((bits (float-digits (coerce 0 type)))

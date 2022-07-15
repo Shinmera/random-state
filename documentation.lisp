@@ -6,142 +6,204 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
 
 (in-package #:org.shirakumo.random-state)
 
+;; generator.lisp
 (docs:define-docs
   (function global-generator
     "Returns a global instance of a generator.
+
+You may also SETF this place to name specific generators of your own.
+
+See MAKE-GENERATOR")
+
+  (function ensure-generator
+    "Ensures the argument is an object usable for random number generation.
+
+See GLOBAL-GENERATOR
+See GENERATOR")
+
+  (function list-generator-types
+    "Lists the types of generators supported by the library.
+
+You may use any of these types to call MAKE-GENERATOR with.
 
 See MAKE-GENERATOR")
   
   (type generator
     "General class for any random number generator.
 
+See LIST-GENERATOR-TYPES
 See SEED
-See BYTES
+See RESEED
+See NEXT-BYTE
+See BITS-PER-BYTE
+See COPY
 See MAKE-GENERATOR
-See RANDOM-BYTE
-See RANDOM-BYTES
-See RANDOM-UNIT
-See RANDOM-FLOAT
-See RANDOM-INT
-See RESEED")
+See STATEFUL-GENERATOR
+See HASH-GENERATOR")
   
   (function seed
-    "Returns the seed that was used to initialise the generator.")
-  
-  (function bytes
-    "Returns the number of bytes (bits) that a RANDOM-BYTE call of this generator produces.")
-  
-  (function generator-class
-    "Attempts to find the named generator class. Accepts strings, symbols, and classes.
-
-If no generator can be found, an error is signalled.")
-  
-  (function make-generator
-    "Creates a generator of the given type.
-
-The GENERATOR can be any name supported by GENERATOR-CLASS.
-
-SEED must be an integer.
-
-After construction, RESEED is called on the generator with the given SEED.
-
-Example:
-  (random-state:make-generator :mersenne-twister-32 42)
-
-See GENERATOR-CLASS
-See RESEED")
-  
-  (function random-byte
-    "Returns an integer of fresh random output from the generator.
-
-The integer is at most 2^(BYTES GENERATOR)-1 and at least 0.
-
-See GENERATOR
-See BYTES")
-  
-  (function random-bytes
-    "Returns an integer of fresh random output from the generator.
-
-The integer is at most 2^(BYTES)-1 and at least 0.
-
-See GENERATOR
-See RANDOM-BYTE")
-  
-  (function random-unit
-    "Returns a unit float of fresh random output from the generator.
-
-The returned value is a double-float between 0.0 and 1.0.
-
-See GENERATOR")
-  
-  (function random-float
-    "Returns a float of fresh random output from the generator.
-
-The returned value is a double-float between FROM and TO.
-
-See GENERATOR")
-  
-  (function random-int
-    "Returns an integer of fresh random output from the generator.
-
-The returned value is an integer between FROM (inclusive) and TO (inclusive).
+    "Returns the seed that was used to initialise the generator.
 
 See GENERATOR")
   
   (function reseed
-    "Reinitialises the generator with the new seed. 
+    "Reset the RNG and seed it with the given seed number.
 
-The seed should be an integer. If not given, the current value returned by
-HOPEFULLY-SUFFICIENTLY-RANDOM-SEED is used."))
+If T is passed for the new seed, a random seed as determined by
+HOPEFULLY-SUFFICIENTLY-RANDOM-SEED is used.
 
-;; linear-congruence.lisp
+See HOPEFULLY-SUFFICIENTLY-RANDOM-SEED
+See GENERATOR")
+
+  (function next-byte
+    "Returns the next byte (not octet) of random state.
+
+The returned integer must be in the range of
+  [ 0, 1 << BITS-PER-BYTE GENERATOR [
+
+See RANDOM-INT
+See RANDOM-BYTES
+See GENERATOR")
+
+  (function bits-per-byte
+    "Returns the number of bits of randomness returned by the generator for each NEXT-BYTE call.
+
+See NEXT-BYTE
+See GENERATOR")
+
+  (function copy
+    "Creates a fresh copy of the given generator.
+
+This copy will return an identical sequence of bytes as the
+original. Meaning, the following invariant holds true:
+
+  (loop with copy = (copy generator) always (= (next-byte generator) (next-byte copy)))
+
+See GENERATOR")
+
+  (function make-generator
+    "Creates a new generator of the given type.
+
+You may pass an optional seed to initialise the generator with. If no
+seed is specified, each constructed generator of the same type will
+return the same sequence of numbers.
+
+See RESEED
+See GENERATOR")
+
+  (type stateful-generator
+    "Superclass for all generators that rely on state to produce random numbers.
+
+See GENERATOR")
+
+  (type hash-generator
+    "Superclass for all generators that rely on a hashing function to generate numbers.
+
+These generators are special in that numbers for any index can be
+generated, so they can be rewound or arbitrarily stepped in their
+sequence.
+
+See GENERATOR
+See INDEX
+See REWIND")
+
+  (function index
+    "Accesses the index of the hash-generator.
+
+The index must be an (unsigned-byte 64).
+The index is advanced for each call to NEXT-BYTE.
+
+See HASH-GENERATOR")
+
+  (function rewind
+    "Rewind the hash-generator by BY numbers.
+
+The following invariant holds for any N:
+
+  (= (next-byte generator) (progn (rewind generator N) (loop repeat (1- N) (next-byte generator)) (next-byte generator)))
+
+See HASH-GENERATOR"))
+
+;; protocol.lisp
 (docs:define-docs
-  (type linear-congruence
-    "A very simple random number generator based on linear congruence.
+  (function random-1d
+    "Returns a byte for the given index and seed.
 
-See https://en.wikipedia.org/wiki/Linear_congruential_generator"))
+This is only usable with HASH-GENERATOR types.
+Does *NOT* advance the generator's index.
 
-;; mersenne-twister.lisp
-(docs:define-docs
-  (type mersenne-twister-32
-    "The de-facto standard random number generator algorithm.
+See HASH-GENERATOR
+See NEXT-BYTE")
 
-See https://en.wikipedia.org/wiki/Mersenne_Twister
-See http://www.acclab.helsinki.fi/~knordlun/mc/mt19937.c")
-  
-  (type mersenne-twister-64
-    "A 64 bit variant of the Mersenne Twister algorithm.
+  (function random-2d
+    "Returns a byte for the given location and seed.
 
-See MERSENNE-TWISTER-32
-See http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/VERSIONS/C-LANG/mt19937-64.c"))
+This is only usable with HASH-GENERATOR types.
+Does *NOT* advance the generator's index.
 
-;; middle-square.lisp
-(docs:define-docs
-  (type middle-square
-    "An incredibly primitive, and basically in practise useless, random number algorithm.
+See HASH-GENERATOR
+See NEXT-BYTE")
 
-See https://en.wikipedia.org/wiki/Middle-square_method"))
+  (function random-3d
+    "Returns a byte for the given location and seed.
 
-;; pcg.lisp
-(docs:define-docs
-  (type pcg
-    "An adaptation of the PCG rng.
+This is only usable with HASH-GENERATOR types.
+Does *NOT* advance the generator's index.
 
-See http://www.pcg-random.org"))
+See HASH-GENERATOR
+See NEXT-BYTE")
 
-;; rc4.lisp
-(docs:define-docs
-  (type rc4
-    "The RC4 cryptographic random number generator.
+  (function random-byte
+    "Alias for NEXT-BYTE.
 
-See https://en.wikipedia.org/wiki/RC4"))
+See GENERATOR
+See NEXT-BYTE")
 
-;; tt800.lisp
-(docs:define-docs
-  (type tt800
-    "The predecessor to the Mersenne Twister algorithm.
+  (function random-bytes
+    "Returns an (UNSIGNED-BYTE BITS) sized random number.
 
-See http://random.mat.sbg.ac.at/publics/ftp/pub/data/tt800.c"))
+May advance the generator more than once.
+
+See GENERATOR
+See NEXT-BYTE")
+
+  (function random-sequence
+    "Fills SEQUENCE between START and END with random numbers.
+
+Note: it is up to you to ensure that SEQUENCE is capable of holding
+numbers returned by the generator's NEXT-BYTE, and that doing so makes
+sense. As in, do not fill a vector with element-type (unsigned-byte 8)
+with a generator whose BITS-PER-BYTE is 32 or vice-versa.
+
+Equivalent to:
+
+  (map-into sequence (lambda () (next-byte generator)))
+
+See GENERATOR
+See NEXT-BYTE")
+
+  (function random-unit
+    "Returns a random float in [0, 1].
+
+The returned float is of the type specified in TYPE.
+
+see GENERATOR
+See RANDOM-BYTES")
+
+  (function random-float
+    "Returns a random float in [FROM, TO].
+
+The returned float is of the same type as whatever type is larger
+between FROM and TO.
+
+See GENERATOR
+See RANDOM-UNIT")
+
+  (function random-int
+    "Returns a random integer in [FROM, TO].
+
+See GENERATOR
+See RANDOM-BYTES"))
 
 ;; toolkit.lisp
 (docs:define-docs
@@ -151,3 +213,47 @@ See http://random.mat.sbg.ac.at/publics/ftp/pub/data/tt800.c"))
 On Unix, this reads 64 bits from /dev/urandom
 On Windows+SBCL, this reads 64 bits from SB-WIN32:CRYPT-GEN-RANDOM
 Otherwise it uses an XOR of GET-INTERNAL-REAL-TIME and GET-UNIVERSAL-TIME."))
+
+;; * RNGs
+(docs:define-docs
+  (type linear-congruence
+    "A very simple random number generator based on linear congruence.
+
+See https://en.wikipedia.org/wiki/Linear_congruential_generator")
+  
+  (type mersenne-twister-32
+    "The de-facto standard random number generator algorithm.
+
+See https://en.wikipedia.org/wiki/Mersenne_Twister
+See http://www.acclab.helsinki.fi/~knordlun/mc/mt19937.c")
+
+  (type mersenne-twister-64
+    "A 64 bit variant of the Mersenne Twister algorithm.
+
+See MERSENNE-TWISTER-32
+See http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/VERSIONS/C-LANG/mt19937-64.c")
+
+  (type middle-square
+    "An incredibly primitive, and basically in practise useless, random number algorithm.
+
+See https://en.wikipedia.org/wiki/Middle-square_method")
+
+  (type pcg
+    "An adaptation of the PCG rng.
+
+See http://www.pcg-random.org")
+
+  (type rc4
+    "The RC4 cryptographic random number generator.
+
+See https://en.wikipedia.org/wiki/RC4")
+
+  (type squirrel
+    "An adaptation of the \"squirrel hash v3\".
+
+See https://www.youtube.com/watch?v=LWFzPP8ZbdU")
+
+  (type tt800
+    "The predecessor to the Mersenne Twister algorithm.
+
+See http://random.mat.sbg.ac.at/publics/ftp/pub/data/tt800.c"))
