@@ -10,14 +10,11 @@
 ;;   http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/VERSIONS/C-LANG/tt800.c
 
 (define-generator tt800 32 (stateful-generator)
-    ((magic (barr 32 0 #x8ebfd028))
-     (shiftops #((  7 #x2b5b2500)
-                 ( 15 #xdb8b0000)
-                 (-16 #xffffffff)))
-     (n 25)
-     (m 7)
-     (index 0)
-     (matrix NIL))
+    ((magic (barr 32 0 #x8ebfd028) :type (simple-array (unsigned-byte 32) (2)))
+     (n 25 :type (unsigned-byte 8))
+     (m 7 :type (unsigned-byte 8))
+     (index 0 :type (unsigned-byte 64))
+     (matrix #() :type (simple-array (unsigned-byte 32) (*))))
   (:reseed
    (setf matrix (32bit-seed-array n seed)))
   (:next
@@ -42,7 +39,7 @@
        (let ((result (matrix index)))
          (declare (type (unsigned-byte 32) result))
          (incf index)
-         (loop for (shift mask) across shiftops
-               do (setf result (logxor result (logand (ash result (the (signed-byte 6) shift))
-                                                      (the (unsigned-byte 32) mask)))))
+         (update32 result logxor (logand (ash result 7) #x2b5b2500))
+         (update32 result logxor (logand (ash result 15) #xdb8b0000))
+         (update32 result logxor (logand (ash result -16) #xffffffff))
          result)))))

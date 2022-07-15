@@ -11,43 +11,40 @@ Author: Nicolas Hafner <shinmera@tymoon.eu>
   ;; generator.lisp
   (:export
    #:global-generator
+   #:ensure-generator
    #:generator
    #:seed
    #:reseed
    #:next-byte
    #:bits-per-byte
+   #:copy
    #:make-generator
    #:define-generator
    #:stateful-generator
    #:hash-generator
-   #:hash-generator-index
+   #:index
    #:rewind)
-  ;; linear-congruence.lisp
-  (:export
-   #:linear-congruence)
-  ;; mersenne-twister.lisp
-  (:export
-   #:mersenne-twister-32
-   #:mersenne-twister-64)
-  ;; middle-square.lisp
-  (:export
-   #:middle-square)
-  ;; pcg.lisp
-  (:export
-   #:pcg)
   ;; protocol.lisp
   (:export
+   #:random-1d
+   #:random-2d
+   #:random-3d
+   #:random-byte
    #:random-bytes
+   #:random-sequence
    #:random-unit
    #:random-float
-   #:random-double-float
-   #:random-integer)
-  ;; rc4.lisp
-  (:export
-   #:rc4)
-  ;; tt800.lisp
-  (:export
-   #:tt800)
+   #:random-int)
   ;; toolkit.lisp
   (:export
-   #:hopefully-sufficiently-random-seed))
+   #:hopefully-sufficiently-random-seed)
+  ;; * rngs
+  (:export
+   #:linear-congruence
+   #:mersenne-twister-32
+   #:mersenne-twister-64
+   #:middle-square
+   #:pcg
+   #:rc4
+   #:squirrel
+   #:tt800))

@@ -15,9 +15,13 @@
 (defun random-3d (generator x y z &optional (seed 0))
   (hash generator (+ x (* y 198491317) (* z 6542989)) seed))
 
+(defun random-byte (generator)
+  (next-byte generator))
+
 (defun random-bytes (generator bits)
   (declare (optimize speed))
-  (let ((chunk (bits-per-byte generator)))
+  (let* ((generator (ensure-generator generator))
+         (chunk (bits-per-byte generator)))
     (declare (type (unsigned-byte 8) bits chunk))
     (cond ((= bits chunk)
            (next-byte generator))
@@ -34,37 +38,46 @@
              (setf (ldb (byte chunk 0) random) (next-byte generator))
              random)))))
 
-(defun random-unit (generator type)
-  (declare (optimize speed))
-  (declare (type float type))
-  (let* ((bits #.(integer-length most-positive-fixnum))
+(defun random-sequence (generator sequence &key (start 0) (end (length sequence)))
+  (let ((generator (ensure-generator generator)))
+    (etypecase sequence
+      (list
+       (loop for cons on sequence
+             do (setf (car cons) (next-byte generator))))
+      (vector
+       (loop for i from start below end
+             do (setf (aref sequence i) (next-byte generator))))
+      (sequence
+       (loop for i from start below end
+             do (setf (elt sequence i) (next-byte generator)))))))
+
+(defun random-unit (generator &optional (type 'single-float))
+  (let* ((bits (float-digits (coerce 0 type)))
          (random (random-bytes generator bits)))
-    ;; KLUDGE: this sucks
-    (/ (float (the (integer 0) random) type)
-       most-positive-fixnum)))
+    ;; KLUDGE: this sucks. Would be better if we could directly fill the mantissa.
+    (/ (coerce random type)
+       (1- (ash 1 bits)))))
 
-(defun random-float (generator from to)
-  (declare (optimize speed))
-  (let ((from (float from 0f0))
-        (to (float to 0f0)))
+(define-compiler-macro random-unit (&whole whole generator &optional (type ''single-float) &environment env)
+  (if (constantp type env)
+      `(/ (coerce (random-bytes ,generator (load-time-value (float-digits (coerce 0 ,type)))) ,type)
+          (load-time-value (1- (ash 1 (float-digits (coerce 0 ,type))))))
+      whole))
+
+(defun random-float (generator from to &optional (type 'single-float))
+  (let ((from (coerce from type))
+        (to (coerce to type)))
     (when (< to from)
       (rotatef from to))
-    (+ from (* (- to from) (the single-float (random-unit generator 0f0))))))
+    (+ from (* (- to from) (random-unit generator type)))))
 
-(defun random-double-float (generator from to)
-  (declare (optimize speed))
-  (let ((from (float from 0d0))
-        (to (float to 0d0)))
-    (when (< to from)
-      (rotatef from to))
-    (+ from (* (- to from) (the double-float (random-unit generator 0d0))))))
-
-(defmethod random-integer :around (generator from to)
+(defun random-integer (generator from to)
   (declare (optimize speed))
   (declare (type integer from to))
   (when (< to from)
     (rotatef from to))
-  (let* ((range (- to from))
+  (let* ((generator (ensure-generator generator))
+         (range (- to from))
          (bits (integer-length range)))
     (declare (type (unsigned-byte 64) range)
              (type (unsigned-byte 8) bits))

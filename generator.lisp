@@ -20,6 +20,18 @@
                                   (make-generator ,name))))
       whole))
 
+(defmacro define-generator-fun (name (gen &rest args))
+  (let ((argsyms (loop for arg in args unless (find arg LAMBDA-LIST-KEYWORDS) collect arg)))
+    `(progn (defgeneric ,name (,gen ,@args))
+
+            (define-compiler-macro ,name (&whole whole ,gen ,@args &environment env)
+              (if (constantp ,gen env)
+                  `(,',name (ensure-generator ,,gen) ,,@argsyms)
+                  whole))
+
+            (defmethod ,name ((,gen symbol) ,@args)
+              (,name (global-generator ,gen) ,@argsyms)))))
+
 (defstruct (generator
             (:constructor NIL)
             (:copier NIL)
@@ -30,21 +42,29 @@
   (print-unreadable-object (generator stream :type T)
     (format stream "~s" (seed generator))))
 
+(declaim (ftype (function ((or generator symbol)) generator) ensure-generator))
+(defun ensure-generator (generator-ish)
+  (etypecase generator-ish
+    (symbol (global-generator generator-ish))
+    (generator generator-ish)))
+
+(define-compiler-macro ensure-generator (&whole whole generator-ish &environment env)
+  (if (constantp generator-ish env)
+      `(load-time-value (etypecase ,generator-ish
+                          (symbol (global-generator ,generator-ish))
+                          (generator ,generator-ish)))
+      whole))
+
 (defgeneric %make-generator (type &key))
-(defgeneric reseed (generator new-seed))
-(defgeneric next-byte (generator))
-(defgeneric bits-per-byte (generator))
+(define-generator-fun reseed (generator new-seed))
+(define-generator-fun next-byte (generator))
+(define-generator-fun bits-per-byte (generator))
+(define-generator-fun copy (generator))
 
 (defun make-generator (type &optional seed &rest initargs)
   (let ((generator (apply #'%make-generator type initargs)))
     (when seed (reseed generator seed))
     generator))
-
-(defmethod next-byte ((generator symbol))
-  (next-byte (global-generator generator)))
-
-(defmethod reseed ((generator symbol) new-seed)
-  (reseed (global-generator generator) new-seed))
 
 (defmethod reseed ((generator generator) (new-seed (eql T)))
   (reseed generator (hopefully-sufficiently-random-seed))
@@ -52,6 +72,7 @@
 
 (defmacro define-generator (name bits-per-byte super slots &body bodies)
   (let ((constructor (intern* 'make name))
+        (copy (intern* 'copy name))
         (reseed (intern* name 'reseed))
         (next (intern* name 'next))
         (hash (intern* name 'hash))
@@ -66,6 +87,7 @@
        (defstruct (,name
                    (:include ,@super)
                    (:constructor ,constructor)
+                   (:copier ,copy)
                    (:predicate NIL))
          ,@slots)
 
@@ -91,12 +113,14 @@
                                   (defmethod hash ((,generator ,name) ,index ,seed)
                                     (,hash ,index ,seed))
                                   (defun ,next (,generator)
-                                    (let ((index (truncate64 (1+ (hash-generator-index ,generator)))))
-                                      (setf (hash-generator-index ,generator) index)
+                                    (let ((index (truncate64 (1+ (index ,generator)))))
+                                      (setf (index ,generator) index)
                                       (,hash index (seed ,generator))))
                                   (defmethod next-byte ((,generator ,name))
                                     (,next ,generator))))))
 
+       (defmethod copy ((generator ,name))
+         (,copy generator))
        (defmethod %make-generator ((type (eql ',name)) &rest initargs)
          (apply #',constructor initargs))
        (defmethod bits-per-byte ((generator ,name))
@@ -111,26 +135,21 @@
 (defstruct (hash-generator
             (:include generator)
             (:constructor NIL)
+            (:conc-name NIL)
             (:copier NIL)
             (:predicate NIL))
   (index 0 :type (unsigned-byte 64)))
 
-(defgeneric rewind (hash-generator &optional by))
-(defgeneric hash (hash-generator index seed))
+(define-generator-fun rewind (hash-generator &optional by))
+(define-generator-fun hash (hash-generator index seed))
 
 (defmethod make-load-form ((generator hash-generator) &optional env)
   (declare (ignore env))
-  `(make-generator ',(type-of generator) ,(seed generator) :index ,(hash-generator-index generator)))
+  `(make-generator ',(type-of generator) ,(seed generator) :index ,(index generator)))
 
 (defmethod reseed ((generator hash-generator) (seed integer))
-  (setf (hash-generator-index generator) 0)
+  (setf (index generator) 0)
   (setf (seed generator) (truncate64 seed)))
-
-(defmethod hash ((generator symbol) index seed)
-  (hash (global-generator generator) index seed))
-
-(defmethod rewind ((generator symbol) &optional (by 1))
-  (rewind (global-generator generator) by))
 
 (defmethod rewind ((generator hash-generator) &optional (by 1))
   (setf (index generator) (truncate64 (- (index generator) by))))
