@@ -22,7 +22,8 @@
   (let ((seeded (sb-ext:seed-random-state seed)))
     (replace (sb-kernel::random-state-state generator)
              (sb-kernel::random-state-state seeded)))
-  #-(or sbcl)
+  #-(or sbcl) #- (or sbcl)
+  (declare (ignorable generator) (ignore seed))
   (error "Can't reseed RANDOM-STATE objects on ~a" (lisp-implementation-type)))
 
 (defmethod next-byte ((generator random-state))
