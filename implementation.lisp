@@ -18,7 +18,8 @@
              (sb-kernel::random-state-state seeded)))
   #+allegro
   (setf (excl::random-state-seed generator) seed)
-  #-(or allegro sbcl)
+  #-(or allegro sbcl)   #-(or allegro sbcl)
+  (declare (ignorable seed))
   (warn "Can't reseed RANDOM-STATE objects on ~a" (lisp-implementation-type))
   generator)
 
