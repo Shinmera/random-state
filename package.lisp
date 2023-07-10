@@ -49,4 +49,15 @@
    #:kiss11
    #:adler32
    #:murmurhash3
-   #:cityhash-64))
+   #:cityhash-64
+   #:xorshift-32
+   #:xorshift-64
+   #:xorshift-128
+   #:xorshift-64*
+   #:xorshift-1024*
+   #:xorwow
+   #:xorshift-128+
+   #:xoshiro-128**
+   #:xoshiro-128+
+   #:xoshiro-256**
+   #:xoshiro-256+))
