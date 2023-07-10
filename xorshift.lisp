@@ -212,16 +212,16 @@
     values)))
 
 (define-generator xoshiro-128++ 32 (stateful-generator)
-  ((values (make-array 4 :element-type '(unsigned-byte 32))
-           :type (simple-array (unsigned-byte 32) (4))))
+    ((values (make-array 4 :element-type '(unsigned-byte 32))
+             :type (simple-array (unsigned-byte 32) (4))))
   (:reseed
    (setf values (splitmix32-array 4 seed)))
   (:next ;; Adapted from works by Sebastiano Vigna
-         (%inner-xoshiro
-          32
-          (fit-bits 32 (+ (xoshiro-rol32 (fit-bits 32 (+ (aref values 0) (aref values 3))) 7)
-                          (aref values 0)))
-          values)))
+   (%inner-xoshiro
+    32
+    (fit-bits 32 (+ (xoshiro-rol32 (fit-bits 32 (+ (aref values 0) (aref values 3))) 7)
+                    (aref values 0)))
+    values)))
 
 (define-generator xoshiro-128+ 32 (stateful-generator)
     ((values (make-array 4 :element-type '(unsigned-byte 32))
@@ -233,7 +233,7 @@
 
 (define-generator xoshiro-256** 64 (stateful-generator)
     ((values (make-array 4 :element-type '(unsigned-byte 64))
-              :type (simple-array (unsigned-byte 64) (4))))
+             :type (simple-array (unsigned-byte 64) (4))))
   (:reseed
    (setf values (splitmix64-array 4 seed)))
   (:next ;; Adapted from works by Sebastiano Vigna
@@ -243,8 +243,8 @@
     values)))
 
 (define-generator xoshiro-256++ 64 (stateful-generator)
-  ((values (make-array 4 :element-type '(unsigned-byte 64))
-           :type (simple-array (unsigned-byte 64) (4))))
+    ((values (make-array 4 :element-type '(unsigned-byte 64))
+             :type (simple-array (unsigned-byte 64) (4))))
   (:reseed
    (setf values (splitmix64-array 4 seed)))
   (:next ;; Adapted from works by Sebastiano Vigna
@@ -255,8 +255,8 @@
     values)))
 
 (define-generator xoshiro-256+ 64 (stateful-generator)
-  ((values (make-array 4 :element-type '(unsigned-byte 64))
-           :type (simple-array (unsigned-byte 64) (4))))
+    ((values (make-array 4 :element-type '(unsigned-byte 64))
+             :type (simple-array (unsigned-byte 64) (4))))
   (:reseed
    (setf values (splitmix64-array 4 seed)))
   (:next ;; Adapted from works by Sebastiano Vigna
