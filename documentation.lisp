@@ -268,4 +268,81 @@ See https://www.youtube.com/watch?v=LWFzPP8ZbdU")
   (type tt800
     "The predecessor to the Mersenne Twister algorithm.
 
-See http://random.mat.sbg.ac.at/publics/ftp/pub/data/tt800.c"))
+See http://random.mat.sbg.ac.at/publics/ftp/pub/data/tt800.c")
+
+  (type xorshift-32
+    "Linear 32-bit word state shift-register generator.
+
+See https://en.wikipedia.org/wiki/Xorshift
+See https://www.jstatsoft.org/article/view/v008i14")
+
+  (type xorshift-64
+    "The 64-bit variant of the Xorshift algorithm..
+
+See XORSHIFT-32")
+
+  (type xorshift-128
+    "The four times 32-bit word state variant of the Xorshift algorithm.
+
+See XORSHIFT-32")
+
+  (type xorwow
+    "Non-linear five times 32-bit word state shift-register generator.
+
+See XORSHIFT-128
+See https://en.wikipedia.org/wiki/Xorshift#xorwow")
+
+  (type xorshift-64*
+    "Non-linear variation of XORSHIFT-64 by adding a modulo multiplier.
+
+See XORSHIFT-64
+See https://en.wikipedia.org/wiki/Xorshift#xorshift*")
+
+  (type xorshift-1024*
+    "Sixteen 64-bit word state variation of XORSHIFT-64*.
+
+See XORSHIFT-64*")
+
+  (type xorshift-128+
+    "Non-linear double 64-bit state variant of XORSHIFT-64 that's currently the standard on modern browsers' JavaScript engines.
+
+See XORSHIFT-64
+See https://en.wikipedia.org/wiki/Xorshift#xorshift+
+See https://v8.dev/blog/math-random")
+
+  (type xoshiro-128**
+    "32-bit variant of XOSHIRO-256**.
+
+See XOSHIRO-256**
+See https://prng.di.unimi.it/xoshiro128starstar.c")
+
+  (type xoshiro-128++
+    "32-bit variant of XOSHIRO-256++.
+
+See XOSHIRO-256++
+See https://prng.di.unimi.it/xoshiro128plus.c")
+
+  (type xoshiro-128+
+    "32-bit variant of XOSHIRO-256+.
+
+See XOSHIRO-256+
+See https://prng.di.unimi.it/xoshiro128plus.c")
+
+  (type xoshiro-256**
+    "Non-linear rotating general-purpose 64-bit number algorithm.
+
+See https://prng.di.unimi.it/
+See https://prng.di.unimi.it/xoshiro256starstar.c
+See https://en.wikipedia.org/wiki/Xorshift#xoshiro")
+
+  (type xoshiro-256++
+    "A variant of XOSHIRO-256** using addition instead of multiplication.
+
+See XOSHIRO-256**
+See https://prng.di.unimi.it/xoshiro256plusplus.c")
+
+  (type xoshiro-256+
+    "Slightly faster variant of XOSHIRO-256++ meant solely for generating 64-bit floating-point numbers by extracting the upper 53-bits due to the linearity of the lower bits.
+
+See XOSHIRO-256++
+See https://prng.di.unimi.it/xoshiro256plus.c"))
