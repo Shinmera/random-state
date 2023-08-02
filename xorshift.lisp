@@ -261,3 +261,83 @@
    (setf values (splitmix64-array 4 seed)))
   (:next ;; Adapted from works by Sebastiano Vigna
    (%inner-xoshiro 64 (fit-bits 64 (+ (aref values 0) (aref values 3))) values)))
+
+;; Xoroshiro variants.
+
+(define-generator xoroshiro-64* 32 (stateful-generator)
+    ((magic #x9e3779bb)
+     (values (make-array 2 :element-type '(unsigned-byte 32))
+             :type (simple-array (unsigned-byte 32) (2))))
+  (:reseed
+   (setf values (splitmix32-array 2 seed)))
+  (:next ;; Adapted from works by Sebastiano Vigna
+   (let* ((temp (aref values 0))
+          (value (aref values 1))
+          (result (fit-bits 32 (* temp magic))))
+     (update 32 temp logxor value)
+     (setf (aref values 0) (logxor (xoshiro-rol32 temp 26) value (fit-bits 32 (ash value 9))))
+     (setf (aref values 1) (xoshiro-rol32 value 13))
+     result)))
+
+(define-generator xoroshiro-64** 32 (stateful-generator)
+    ((magic #x9e3779bb)
+     (values (make-array 2 :element-type '(unsigned-byte 32))
+             :type (simple-array (unsigned-byte 32) (2))))
+  (:reseed
+   (setf values (splitmix32-array 2 seed)))
+  (:next ;; Adapted from works by Sebastiano Vigna
+   (let* ((temp (aref values 0))
+          (value (aref values 1))
+          (result (fit-bits 32 (* (xoshiro-rol32 (fit-bits 32 (* temp magic)) 5) 5))))
+     (update 32 temp logxor value)
+     (setf (aref values 0) (logxor (xoshiro-rol32 temp 26) value (fit-bits 32 (ash value 9))))
+     (setf (aref values 1) (xoshiro-rol32 value 13))
+     result)))
+
+(define-generator xoroshiro-128+ 64 (stateful-generator)
+    ((values (make-array 2 :element-type '(unsigned-byte 64))
+             :type (simple-array (unsigned-byte 64) (2))))
+  ;; TODO: This algorithm allows a quick generation of 2^64 :next-calls.
+  ;;       See jump() and long_jump() functions in https://prng.di.unimi.it/xoroshiro128plus.c
+  (:reseed
+   (setf values (splitmix64-array 2 seed)))
+  (:next ;; Adapted from works by Sebastiano Vigna
+   (let* ((temp (aref values 0))
+          (value (aref values 1))
+          (result (fit-bits 64 (+ temp value))))
+     (update 64 temp logxor value)
+     (setf (aref values 0) (logxor (xoshiro-rol64 temp 24) value (fit-bits 64 (ash value 16))))
+     (setf (aref values 1) (xoshiro-rol64 value 37))
+     result)))
+
+(define-generator xoroshiro-128++ 64 (stateful-generator)
+    ((values (make-array 2 :element-type '(unsigned-byte 64))
+             :type (simple-array (unsigned-byte 64) (2))))
+  ;; TODO: This algorithm allows a quick generation of 2^64 :next-calls.
+  ;;       See jump() and long_jump() functions in https://prng.di.unimi.it/xoroshiro128plusplus.c
+  (:reseed
+   (setf values (splitmix64-array 2 seed)))
+  (:next ;; Adapted from works by Sebastiano Vigna
+   (let* ((temp (aref values 0))
+          (value (aref values 1))
+          (result (fit-bits 64 (+ (xoshiro-rol64 (fit-bits 64 (+ temp value)) 17) temp))))
+     (update 64 temp logxor value)
+     (setf (aref values 0) (logxor (xoshiro-rol64 temp 49) value (fit-bits 64 (ash value 21))))
+     (setf (aref values 1) (xoshiro-rol64 value 28))
+     result)))
+
+(define-generator xoroshiro-128** 64 (stateful-generator)
+    ((values (make-array 2 :element-type '(unsigned-byte 64))
+             :type (simple-array (unsigned-byte 64) (2))))
+  ;; TODO: This algorithm allows a quick generation of 2^64 :next-calls.
+  ;;       See jump() and long_jump() functions in https://prng.di.unimi.it/xoroshiro128starstar.c
+  (:reseed
+   (setf values (splitmix64-array 2 seed)))
+  (:next ;; Adapted from works by Sebastiano Vigna
+   (let* ((temp (aref values 0))
+          (value (aref values 1))
+          (result (fit-bits 64 (* (xoshiro-rol64 (fit-bits 64 (* temp 5)) 7) 9))))
+     (update 64 temp logxor value)
+     (setf (aref values 0) (logxor (xoshiro-rol64 temp 24) value (fit-bits 64 (ash value 16))))
+     (setf (aref values 1) (xoshiro-rol64 value 37))
+     result)))

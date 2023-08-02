@@ -369,4 +369,36 @@ See https://prng.di.unimi.it/xoshiro256plusplus.c")
     "Slightly faster variant of XOSHIRO-256++ meant solely for generating 64-bit floating-point numbers by extracting the upper 53-bits due to the linearity of the lower bits.
 
 See XOSHIRO-256++
-See https://prng.di.unimi.it/xoshiro256plus.c"))
+See https://prng.di.unimi.it/xoshiro256plus.c")
+
+  (type xoroshiro-64*
+    "Slightly faster variant of XOROSHIRO-64** meant solely for generating 32-bit floating-point numbers by extracting the upper 26-bits due to the linearity of the lower bits.
+
+See XOROSHIRO-64**
+See https://prng.di.unimi.it/xoroshiro64star.c")
+
+  (type xoroshiro-64**
+    "32-bit variant of XOROSHIRO-128**.
+
+See XOROSHIRO-128**
+See https://prng.di.unimi.it/xoroshiro64starstar.c")
+
+  (type xoroshiro-128+
+    "A variant of XOROSHIRO-128++ that is slightly faster. It is suggested to be used for generating 64-bit floating-point values using its upper 53 bits and random boolean values using a sign test.
+
+See XOROSHIRO-128++
+See https://prng.di.unimi.it/xoroshiro128plus.c")
+
+  (type xoroshiro-128++
+    "A variant of XOROSHIRO-128** using addition instead of multiplication.
+
+See XOROSHIRO-128**
+See https://prng.di.unimi.it/xoroshiro128plusplus.c")
+
+  (type xoroshiro-128**
+    "Non-linear rotating general-purpose 64-bit number algorithm that is similar to Xoshiro-256** but uses less space.
+
+See XOSHIRO-256**
+See https://prng.di.unimi.it/
+See https://prng.di.unimi.it/xoroshiro128starstar.c
+See https://en.wikipedia.org/wiki/Xoroshiro128%2B"))
