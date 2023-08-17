@@ -4,6 +4,28 @@
 
 (declaim (inline random))
 
+(defun random (max &optional (generator *generator*))
+  (etypecase max
+    ((integer 0)
+     (random-int generator 0 (1- max)))
+    ((short-float 0s0)
+     (random-float generator 0s0 (- max short-float-epsilon)))
+    #-ccl ; apparently ccl's SHORT-FLOAT and SINGLE-FLOAT are the same
+    ((single-float 0f0)
+     (random-float generator 0f0 (- max single-float-epsilon)))
+    ((double-float 0d0)
+     (random-float generator 0d0 (- max double-float-epsilon)))
+    #-ccl ; apparently ccl's LONG-FLOAT and DOUBLE-FLOAT are the same
+    ((long-float 0l0)
+     (random-float generator 0l0 (- max long-float-epsilon)))))
+
+
+(define-compiler-macro random-unit (&whole whole generator &optional (type ''single-float) &environment env)
+  (if (constantp type env)
+      `(scale-float (coerce (random-bytes ,generator (load-time-value (float-digits (coerce 0 ,type)))) ,type)
+                    (load-time-value (- (float-digits (coerce 0 ,type)))))
+      whole))
+
 (defun draw (n &optional (generator *generator*))
   (let ((samples (make-array n :element-type 'single-float))
         (generator (ensure-generator generator)))
@@ -59,12 +81,6 @@
          (random (random-bytes generator bits)))
     ;; KLUDGE: this sucks. Would be better if we could directly fill the mantissa.
     (scale-float (coerce random type) (- bits))))
-
-(define-compiler-macro random-unit (&whole whole generator &optional (type ''single-float) &environment env)
-  (if (constantp type env)
-      `(scale-float (coerce (random-bytes ,generator (load-time-value (float-digits (coerce 0 ,type)))) ,type)
-                    (load-time-value (- (float-digits (coerce 0 ,type)))))
-      whole))
 
 (defun random-float (generator from to)
   (let ((from from)
@@ -124,17 +140,3 @@
              when (<= candidate range)
              return candidate))))
 
-(defun random (max &optional (generator *generator*))
-  (etypecase max
-    ((integer 0)
-     (random-int generator 0 (1- max)))
-    ((short-float 0s0)
-     (random-float generator 0s0 (- max short-float-epsilon)))
-    #-ccl ; apparently ccl's SHORT-FLOAT and SINGLE-FLOAT are the same
-    ((single-float 0f0)
-     (random-float generator 0f0 (- max single-float-epsilon)))
-    ((double-float 0d0)
-     (random-float generator 0d0 (- max double-float-epsilon)))
-    #-ccl ; apparently ccl's LONG-FLOAT and DOUBLE-FLOAT are the same
-    ((long-float 0l0)
-     (random-float generator 0l0 (- max long-float-epsilon)))))
