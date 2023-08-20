@@ -24,6 +24,7 @@
                (:file "cityhash")
                (:file "xorshift")
                (:file "implementation")
+               (:file "histogram")
                (:file "documentation"))
   :depends-on (:documentation-utils)
   :in-order-to ((asdf:test-op (asdf:test-op :random-state-test))))
