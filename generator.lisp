@@ -46,7 +46,7 @@
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (generator stream :type T)
-	(format stream "~s" (seed generator))))
+        (format stream "~s" (seed generator))))
   ;; P-U-O does not return the object, which PRINT-OBJECT is supposed to do.
   generator)
 
@@ -76,6 +76,18 @@
 (define-generator-fun next-byte (generator))
 (define-generator-fun bits-per-byte (generator))
 (define-generator-fun copy (generator))
+
+;;; supporting methods for COPY
+(defmethod copy ((thing number))
+  thing)
+
+(defmethod copy ((thing array))
+  (make-array (array-dimensions thing)
+              :element-type (array-element-type thing)
+              :fill-pointer (array-has-fill-pointer-p thing)
+              :adjustable (adjustable-array-p thing)
+              :initial-contents thing))
+
 
 (defun make-generator (type &optional (seed T) &rest initargs)
   (let ((generator (apply #'%make-generator type initargs)))

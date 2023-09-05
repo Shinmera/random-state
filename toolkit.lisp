@@ -66,16 +66,6 @@
 (defmacro update (bits place op &rest args)
   `(setf ,place (fit-bits ,bits (,op ,place ,@args))))
 
-(defmethod copy ((thing number))
-  thing)
-
-(defmethod copy ((thing array))
-  (make-array (array-dimensions thing)
-              :element-type (array-element-type thing)
-              :fill-pointer (array-has-fill-pointer-p thing)
-              :adjustable (adjustable-array-p thing)
-              :initial-contents thing))
-
 (defun histogram (rng bins &key (samples (floor 1e8)) (width 80) (stream *standard-output*))
   (declare (notinline random))
   (check-type samples (unsigned-byte 64))
