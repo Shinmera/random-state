@@ -44,3 +44,16 @@
 (define-default-rng-test random:xoshiro-128+)
 (define-default-rng-test random:xoshiro-256**)
 (define-default-rng-test random:xoshiro-256+)
+
+(define-test pcg-ref ;; compare to values from reference implementation
+  (let ((r (random:make-generator 'random:pcg)))
+    (finish (random::pcg-reseed r 123))
+    (is = #xa672e978b011d001 (random::pcg-state r))
+    (is = 247 (random::pcg-inc r))
+    (is = #x81c81ce5 (random::pcg-next r))
+    (is = #x49e9aca3 (random::pcg-next r))
+    (dotimes (i 30) (random::pcg-next r))
+    (is = #x3c67e995 (random::pcg-next r))
+    (is = #xd4b18bfdfb1841c4 (random::pcg-state r))
+    (is = 247 (random::pcg-inc r))))
+

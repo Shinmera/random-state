@@ -11,7 +11,8 @@
    (pcg-next generator))
   (:next
    (let ((oldstate state))
-     (setf state (fit-bits 64 (+ (fit-bits 64 (* oldstate #x6364136223846793005)) inc)))
-     (let ((xord (ash (logxor (ash oldstate -18) oldstate) -27))
-           (rot (ash oldstate -59)))
+     (setf state (fit-bits 64 (+ (fit-bits 64 (* oldstate 6364136223846793005)) inc)))
+     (let ((xord (fit-bits 32 (ash (logxor (ash oldstate -18) oldstate) -27)))
+           (rot (fit-bits 32 (ash oldstate -59))))
        (fit-bits 32 (logior (ash xord (- rot)) (ash xord (logand (- rot) 31))))))))
+
