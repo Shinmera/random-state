@@ -47,4 +47,4 @@ jobs:
     - name: load code and run tests
       shell: bash
       run: |
-        run-parachute -l "random-state-test" "org.shirakumo.random-state.test"
+        run-parachute -l "random-state/test" "org.shirakumo.random-state.test"
