@@ -3,9 +3,9 @@
   :author "Yukari Hafner <shinmera@tymoon.eu>"
   :license "zlib"
   :description "Portable random number generation."
-  :homepage "https://Shinmera.github.io/random-state/"
-  :bug-tracker "https://github.com/Shinmera/random-state/issues"
-  :source-control (:git "https://github.com/Shinmera/random-state.git")
+  :homepage "https://shinmera.com/docs/random-state/"
+  :bug-tracker "https://shinmera.com/project/random-state/issues"
+  :source-control (:git "https://shinmera.com/project/random-state.git")
   :in-order-to ((test-op (test-op "random-state-test")))
   :serial T
   :components ((:file "package")
@@ -40,9 +40,9 @@
   :author "Yukari Hafner <shinmera@tymoon.eu>"
   :license "zlib"
   :description "Portable random number generation."
-  :homepage "https://Shinmera.github.io/random-state/"
-  :bug-tracker "https://github.com/Shinmera/random-state/issues"
-  :source-control (:git "https://github.com/Shinmera/random-state.git")
+  :homepage "https://shinmera.com/docs/random-state/"
+  :bug-tracker "https://shinmera.com/project/random-state/issues"
+  :source-control (:git "https://shinmera.com/project/random-state.git")
   :serial T
   :components ((:file "test"))
   :depends-on (:random-state :parachute)
@@ -53,9 +53,9 @@
   :author "Yukari Hafner <shinmera@tymoon.eu>"
   :license "zlib"
   :description "Visualiser for the random number generators"
-  :homepage "https://Shinmera.github.io/random-state/"
-  :bug-tracker "https://github.com/Shinmera/random-state/issues"
-  :source-control (:git "https://github.com/Shinmera/random-state.git")
+  :homepage "https://shinmera.com/docs/random-state/"
+  :bug-tracker "https://shinmera.com/project/random-state/issues"
+  :source-control (:git "https://shinmera.com/project/random-state.git")
   :serial T
   :components ((:file "viewer"))
   :depends-on (:random-state
